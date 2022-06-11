@@ -1,5 +1,7 @@
 const express = require('express')
 const session = require('express-session')
+const { v4: uuid } = require('uuid')
+const cors = require('cors')
 
 const app = express()
 const PORT = 5000
@@ -8,6 +10,10 @@ const PORT = 5000
 
 // SETUP
 
+// app.use(cors({
+    // origin: 'http://localhost:3000',
+    // credentials:true
+// }))
 app.use(session({
     secret: 'test',
     resave: false,
@@ -18,6 +24,30 @@ app.use(express.urlencoded({
     extended: true
 }))
 app.set('view engine', 'ejs')
+
+/////////////////////////////////////////////////////////////////////////
+
+// CSRF TOKENS
+
+const tokens = new Map()
+
+const csrfToken = (sessionId) => {
+    const token = uuid()
+    tokens.get(sessionId).add(token)
+    setTimeout(() => tokens.get(sessionId).delete(token), 30000)
+
+    return token
+}
+
+// CSRF Middleware
+const csrf = (req, res, next) => {
+    const token = req.body.csrfToken
+
+    if (!token || !tokens.get(req.sessionID).has(token)) {
+        return res.status(422).send('Falta el token CSRF o ha caducado')
+    }
+    next()
+}
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -59,6 +89,8 @@ app.post('/login', (req, res) => {
 
     req.session.userId = user.id
 
+    tokens.set(req.sessionID, new Set())
+
     res.redirect('/')
 })
 
@@ -71,10 +103,12 @@ app.get('/logout', mid.auth, (req, res) => {
 
 // Edit
 app.get('/edit', mid.auth, (req, res) => {
-    res.render('edit')
+    res.render('edit', {
+        csrfToken: csrfToken(req.sessionID)
+    })
 })
 
-app.post('/edit', mid.auth, (req, res) => {
+app.post('/edit', mid.auth, csrf, (req, res) => {
     const user = users.find(user => user.id === req.session.userId)
 
     const prevEmail = user.email

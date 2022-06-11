@@ -3,6 +3,7 @@
 
   <form action="/edit" method="POST">
     <input type="email" name="email" placeholder="Nuevo email">
+    <input type="hidden" name="csrfToken" value="<%= csrfToken %>">
     <input type="submit">
   </form>
 <%- include('layouts/footer') -%>
